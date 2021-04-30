@@ -1,0 +1,39 @@
+<launch>
+  <arg name="mav_name" default="ITM_Quadrocopter"/>
+  <arg name="enable_logging" default="false"/>
+  <arg name="enable_ground_truth" default="true"/>
+  <arg name="log_file" default="$(arg mav_name)"/>
+  <arg name="debug" default="false"/>
+  <arg name="gui" default="true"/>
+  <arg name="paused" default="false"/>
+  <!-- The following line causes gzmsg and gzerr messages to be printed to the console
+      (even when Gazebo is started through roslaunch) -->
+  <arg name="verbose" default="false"/>
+  <arg name="inc_robotino" default="true"/>
+  <arg name="inc_summit" default="true"/>
+  <!-- This is to identify the path of the Firmware in your machine  -->
+  <!-- where your sitl_gazebo is stored -->
+  <arg name="sitl_gazebo_path" default="/home/arnold/Develop/PX4-Autopilot/Tools/sitl_gazebo" />
+  <!-- your world definition -->
+  <arg name="world_file" default="itm_s500_camera.world" />
+
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(arg sitl_gazebo_path)/worlds/$(arg world_file)"/>
+    <arg name="debug" value="$(arg debug)" />
+    <arg name="paused" value="$(arg paused)" />
+    <arg name="gui" value="$(arg gui)" />
+    <arg name="verbose" value="$(arg verbose)"/>
+  </include>
+
+
+   <include file="$(find mavros)/launch/node.launch">
+    <arg name="pluginlists_yaml" value="$(find mavros)/launch/px4_pluginlists.yaml" />
+    <arg name="config_yaml" value="$(find mavros)/launch/px4_config.yaml" />
+    <arg name="fcu_url" value="udp://:14540@127.0.0.1:14557" /> <!-- only sim IP -->
+    <arg name="gcs_url" value="udp://@192.168.1.150:14550" />
+    <arg name="tgt_system" value="1" />
+    <arg name="tgt_component" value="1" />
+    <arg name="fcu_protocol" value="v2.0" />
+  </include>
+
+</launch>
