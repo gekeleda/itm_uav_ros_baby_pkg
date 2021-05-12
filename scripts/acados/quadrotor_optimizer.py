@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=UTF-8
 '''
 Author: Wei Luo
@@ -21,7 +21,7 @@ import rospy
 from geometry_msgs.msg import Twist, PoseStamped
 from std_msgs.msg import Empty
 from nav_msgs.msg  import Odometry
-from itm_nonlinear_mpc.msg import itm_trajectory_msg
+from itm_mav_msgs.msg import itm_trajectory_msg
 from std_srvs.srv import SetBool, SetBoolResponse
 from mavros_msgs.msg import AttitudeTarget
 from geometry_msgs.msg import Quaternion
