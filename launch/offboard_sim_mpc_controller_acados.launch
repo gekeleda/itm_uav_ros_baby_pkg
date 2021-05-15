@@ -7,4 +7,8 @@
 
     <node name="offboard_node" pkg="itm_uav_ros_baby_pkg" type="offboard_sim_node.py" respawn="false" clear_params="true" output="screen" launch-prefix="bash -c 'sleep $(arg node_start_delay1); $0 $@'">
   </node>
+
+  <node name="trajectory_node" pkg="itm_uav_ros_baby_pkg" type="quadrotor_trajectory.py" output="screen">
+  </node>
+
 </launch>
