@@ -75,17 +75,19 @@ class QuadOptimizer:
         roll, pitch, yaw = self.quaternion_to_rpy(data.pose.pose.orientation)
         self.current_state = np.array([data.pose.pose.position.x, data.pose.pose.position.y, data.pose.pose.position.z,
                                         data.twist.twist.linear.x, data.twist.twist.linear.y, data.twist.twist.linear.z,
-                                        self.current_state[6], self.current_state[7], self.current_state[8], self.current_state[9],
+                                        data.pose.pose.position.x, data.pose.pose.position.y, 0., 0.,
                                         roll, pitch, yaw], dtype=np.float64)
 
     def pendulum_state_callback(self, data):
         # pendulum state as [x, y, z, vx, vy, vz, s, r, ds, dr, roll, pitch, yaw]
-        s, r = data.pose.pose.position.x, data.pose.pose.position.y
-        ds, dr = data.twist.twist.linear.x, data.twist.twist.linear.y
-        self.current_state = np.array([self.current_state[0], self.current_state[1], self.current_state[2],
-                                        self.current_state[3], self.current_state[4], self.current_state[5],
-                                        s, r, ds, dr,
-                                        self.current_state[10], self.current_state[11], self.current_state[12]], dtype=np.float64)
+        # s, r = data.pose.pose.position.x, data.pose.pose.position.y
+        # ds, dr = data.twist.twist.linear.x, data.twist.twist.linear.y
+        s, r = self.current_state[0], self.current_state[1]
+        ds, dr = 0., 0.
+        # self.current_state_pendulum = np.array([self.current_state[0], self.current_state[1], self.current_state[2],
+        #                                 self.current_state[3], self.current_state[4], self.current_state[5],
+        #                                 s, r, ds, dr,
+        #                                 self.current_state[10], self.current_state[11], self.current_state[12]], dtype=np.float64)
 
 
     def trajectory_command_callback(self, data):
@@ -125,13 +127,13 @@ class QuadOptimizer:
         # R_m_ = np.diag([50.0, 60.0, 1.0])
         Q_m_ = np.diag([10.0, 10.0, 10.0,
                 3.0, 3.0, 3.0,
-                0.0, 0.0, 0.0, 0.0,
+                0.1, 0.1, 0.1, 0.1,
                 0.5, 0.5, 0.5])  # position, velocity, roll, pitch, (not yaw)
 
         P_m_ = np.diag([10.0, 10.0, 10.0,
                         1.0, 1.0, 1.0,
-                        0.0, 0.0, 0.0, 0.0,
-                        0., 0., 0.])  # only p and v
+                        0.1, 0.1, 0.1, 0.1,
+                        0.1, 0.1, 0.1])  # only p and v
         # P_m_[0, 8] = 6.45
         # P_m_[8, 0] = 6.45
         # P_m_[1, 9] = 6.45
@@ -239,8 +241,8 @@ class QuadOptimizer:
                 self.att_command.thrust = 0.5
                 self.att_command.body_rate.z = 0.0
             else:
-                # for i in range(self.N):
-                #     print(self.solver.get(i, 'x'))
+                for i in range(self.N):
+                    print(self.solver.get(i, 'x'))
                 mpc_u_ = self.solver.get(0, 'u')
                 quat_local_ =   self.rpy_to_quaternion(mpc_u_[0], mpc_u_[1], 0, w_first=False)
                 self.att_command.orientation.x = quat_local_[0]
