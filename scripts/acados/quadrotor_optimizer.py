@@ -34,14 +34,14 @@ class QuadOptimizer:
     def __init__(self, quad_model, quad_constraints, t_horizon, n_nodes, sim_required=False, max_hight=1.0):
         self.model = quad_model
         self.constraints = quad_constraints
-        self.g_ = 9.8066
+        self.g = 9.8066
         self.T = t_horizon
         self.N = n_nodes
         self.simulation_required = sim_required
 
         robot_name_ = rospy.get_param("~robot_name", "bebop1_r")
         self.current_pose = None
-        self.current_state = None
+        self.current_state = np.zeros((13,1))
         self.dt = 0.02
         self.rate = rospy.Rate(1/self.dt)
         self.time_stamp = None
@@ -53,6 +53,8 @@ class QuadOptimizer:
         # subscribers
         ## the robot state
         robot_state_sub_ = rospy.Subscriber('/robot_pose', Odometry, self.robot_state_callback)
+        ## pendulum state
+        pendulum_state_sub_ = rospy.Subscriber('/pendulum_pose', Odometry, self.pendulum_state_callback)
         ## trajectory
         robot_trajectory_sub_ = rospy.Subscriber('/robot_trajectory', itm_trajectory_msg, self.trajectory_command_callback)
         # publisher
@@ -69,11 +71,21 @@ class QuadOptimizer:
         self.att_thread.start()
 
     def robot_state_callback(self, data):
-        # robot state as [x, y, z, vx, vy, vz, r, q, p]
-        roll_, pitch_, yaw_ = self.quaternion_to_rpy(data.pose.pose.orientation)
+        # robot state as [x, y, z, vx, vy, vz, s, r, ds, dr, roll, pitch, yaw]
+        roll, pitch, yaw = self.quaternion_to_rpy(data.pose.pose.orientation)
         self.current_state = np.array([data.pose.pose.position.x, data.pose.pose.position.y, data.pose.pose.position.z,
-        data.twist.twist.linear.x, data.twist.twist.linear.y, data.twist.twist.linear.z,
-        roll_, pitch_, yaw_])
+                                        data.twist.twist.linear.x, data.twist.twist.linear.y, data.twist.twist.linear.z,
+                                        self.current_state[6], self.current_state[7], self.current_state[8], self.current_state[9],
+                                        roll, pitch, yaw], dtype=np.float64)
+
+    def pendulum_state_callback(self, data):
+        # pendulum state as [x, y, z, vx, vy, vz, s, r, ds, dr, roll, pitch, yaw]
+        s, r = data.pose.pose.position.x, data.pose.pose.position.y
+        ds, dr = data.twist.twist.linear.x, data.twist.twist.linear.y
+        self.current_state = np.array([self.current_state[0], self.current_state[1], self.current_state[2],
+                                        self.current_state[3], self.current_state[4], self.current_state[5],
+                                        s, r, ds, dr,
+                                        self.current_state[10], self.current_state[11], self.current_state[12]], dtype=np.float64)
 
 
     def trajectory_command_callback(self, data):
@@ -81,7 +93,7 @@ class QuadOptimizer:
         if data.size != len(temp_traj):
             rospy.logerr('Some data are lost')
         else:
-            self.trajectory_path = np.zeros((data.size, 9))
+            self.trajectory_path = np.zeros((data.size, 13))
             for i in range(data.size):
                 self.trajectory_path[i] = np.array([temp_traj[i].x,
                                                     temp_traj[i].y,
@@ -89,6 +101,10 @@ class QuadOptimizer:
                                                     temp_traj[i].vx,
                                                     temp_traj[i].vy,
                                                     temp_traj[i].vz,
+                                                    temp_traj[i].load_x,
+                                                    temp_traj[i].load_y,
+                                                    temp_traj[i].load_vx,
+                                                    temp_traj[i].load_vy,
                                                     temp_traj[i].roll,
                                                     temp_traj[i].pitch,
                                                     temp_traj[i].yaw,
@@ -107,13 +123,22 @@ class QuadOptimizer:
         # P_m_[2, 5] = 10.95
         # P_m_[5, 2] = 10.95
         # R_m_ = np.diag([50.0, 60.0, 1.0])
-        Q_m_ = np.diag([10, 10, 10,
-            0.3, 0.3, 0.3,
-            0.05, 0.05, 0.05,
-        ])  # position, v, angle
-        P_m_ = np.diag([10,  10, 10,
-                        0.05, 0.05, 0.05])  # only p and v
-        R_m_ = np.diag([3.0, 3.0, 1.0])
+        Q_m_ = np.diag([10.0, 10.0, 10.0,
+                3.0, 3.0, 3.0,
+                0.0, 0.0, 0.0, 0.0,
+                0.5, 0.5, 0.5])  # position, velocity, roll, pitch, (not yaw)
+
+        P_m_ = np.diag([10.0, 10.0, 10.0,
+                        1.0, 1.0, 1.0,
+                        0.0, 0.0, 0.0, 0.0,
+                        0., 0., 0.])  # only p and v
+        # P_m_[0, 8] = 6.45
+        # P_m_[8, 0] = 6.45
+        # P_m_[1, 9] = 6.45
+        # P_m_[9, 1] = 6.45
+        # P_m_[2, 10] = 10.95
+        # P_m_[10, 2] = 10.95
+        R_m_ = np.diag([3.0, 3.0, 3.0, 1.0])
 
         nx = self.model.x.size()[0]
         self.nx = nx
@@ -147,21 +172,21 @@ class QuadOptimizer:
         ocp.cost.Vx[:nx, :nx] = np.eye(nx)
         ocp.cost.Vu = np.zeros((ny, nu))
         ocp.cost.Vu[-nu:, -nu:] = np.eye(nu)
-        ocp.cost.Vx_e = np.zeros((nx-3, nx))
-        ocp.cost.Vx_e[:nx-3, :nx-3] = np.eye(nx-3)
+        ocp.cost.Vx_e = np.zeros((nx, nx)) # only consider p and v
+        ocp.cost.Vx_e[:nx-2, :nx-2] = np.eye(nx-2)
 
         # initial reference trajectory_ref
         x_ref = np.zeros(nx)
-        x_ref_e = np.zeros(nx-3)
+        x_ref_e = np.zeros(nx)
         u_ref = np.zeros(nu)
-        u_ref[-1] = self.g_
+        u_ref[-1] = self.g
         ocp.cost.yref = np.concatenate((x_ref, u_ref))
         ocp.cost.yref_e = x_ref_e
 
         # Set constraints
-        ocp.constraints.lbu = np.array([self.constraints.roll_min, self.constraints.pitch_min, self.constraints.thrust_min])
-        ocp.constraints.ubu = np.array([self.constraints.roll_max, self.constraints.pitch_max, self.constraints.thrust_max])
-        ocp.constraints.idxbu = np.array([0, 1, 2])
+        ocp.constraints.lbu = np.array([self.constraints.roll_min, self.constraints.pitch_min, self.constraints.yaw_min, self.constraints.thrust_min])
+        ocp.constraints.ubu = np.array([self.constraints.roll_max, self.constraints.pitch_max, self.constraints.yaw_max, self.constraints.thrust_max])
+        ocp.constraints.idxbu = np.array([0, 1, 2, 3])
 
         # initial state
         ocp.constraints.x0 = x_ref
@@ -187,10 +212,14 @@ class QuadOptimizer:
             # mpcX = np.zeros((self.n_nodes+1, self.nx))
             # mpcU = np.zeros((self.n_nodes, self.nu))
             current_trajectory = self.trajectory_path
-            u_des = np.array([0.0, 0.0, self.g_])
-            print(current_trajectory)
+            print()
+            print("current state: ")
+            np.set_printoptions(suppress=True)
+            print(self.current_state)
+            u_des = np.array([0.0, 0.0, 0.0, self.g])
+            #print(current_trajectory[-1])
 
-            self.solver.set(self.N, 'yref', current_trajectory[-1, :6])
+            self.solver.set(self.N, 'yref', current_trajectory[-1])
             for i in range(self.N):
                 self.solver.set(i, 'yref', np.concatenate([current_trajectory[i].flatten(), u_des]))
 
@@ -201,13 +230,15 @@ class QuadOptimizer:
 
             if status !=0 :
                 rospy.logerr("MPC cannot find a proper solution.")
-                print(self.current_state)
+                #self.solver.print_statistics()
+                # print(self.current_state)
                 self.att_command.orientation = Quaternion(*self.rpy_to_quaternion(0.0, 0.0, 0.0, w_first=False))
+                #self.att_command.thrust = 0.5
                 self.att_command.thrust = 0.5
                 self.att_command.body_rate.z = 0.0
             else:
-                for i in range(self.N):
-                    print(self.solver.get(i, 'x'))
+                # for i in range(self.N):
+                #     print(self.solver.get(i, 'x'))
                 mpc_u_ = self.solver.get(0, 'u')
                 quat_local_ =   self.rpy_to_quaternion(mpc_u_[0], mpc_u_[1], 0, w_first=False)
                 self.att_command.orientation.x = quat_local_[0]
@@ -215,7 +246,11 @@ class QuadOptimizer:
                 self.att_command.orientation.z = quat_local_[2]
                 self.att_command.orientation.w = quat_local_[3]
                 # print(self.att_command.orientation)
-                self.att_command.thrust = mpc_u_[2]/9.8066 - 0.5
+                #self.att_command.thrust = mpc_u_[2]/9.8066 - 0.5
+                self.att_command.thrust = mpc_u_[3]/9.8066 - 0.62
+                print()
+                print("mpc_u: ")
+                print(mpc_u_)
                 # print(self.att_command.thrust)
                 # yaw_command_ = self.yaw_command(current_yaw_, trajectory_path_[1, -1], 0.0)
                 # yaw_command_ = self.yaw_controller(trajectory_path_[1, -1]-current_yaw_)

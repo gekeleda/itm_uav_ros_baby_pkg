@@ -5,7 +5,7 @@ from itm_mav_msgs.msg import itm_trajectory_msg
 from itm_mav_msgs.msg import itm_trajectory_point
 from std_msgs.msg import Header
 
-reference_point = np.array([0., 0., 10., 0., 0., 0., 0., 0., 0.])
+reference_point = np.array([0., 0., 1.0, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
 n_nodes = 20
 
 def talker():
@@ -19,19 +19,23 @@ def talker():
     msg.size = n_nodes
     msg.data = []
     point = itm_trajectory_point()
-    point.x = 0.
-    point.y = 0.
-    point.z = 10.
-    point.vx = 0.
-    point.vy = 0.
-    point.vz = 0.
-    point.roll = 0.
-    point.pitch = 0.
-    point.yaw = 0.
+    point.x = reference_point[0]
+    point.y = reference_point[1]
+    point.z = reference_point[2]
+    point.vx = reference_point[3]
+    point.vy = reference_point[4]
+    point.vz = reference_point[5]
+    point.load_x = reference_point[6]
+    point.load_y = reference_point[7]
+    point.load_vx = reference_point[8]
+    point.load_vy = reference_point[9]
+    point.roll = reference_point[10]
+    point.pitch = reference_point[11]
+    point.yaw = reference_point[12]
     msg.traj = [point]*n_nodes
 
     while not rospy.is_shutdown():
-        rospy.loginfo(msg)
+        #rospy.loginfo(msg)
         pub.publish(msg)
         rate.sleep()
 
