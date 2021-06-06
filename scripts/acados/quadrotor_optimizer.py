@@ -217,7 +217,9 @@ class QuadOptimizer:
             np.set_printoptions(suppress=True)
             print(self.current_state)
             u_des = np.array([0.0, 0.0, 0.0, self.g])
-            #print(current_trajectory[-1])
+            print()
+            print("current trajectory: ")
+            print(current_trajectory[-1])
 
             self.solver.set(self.N, 'yref', current_trajectory[-1])
             for i in range(self.N):
@@ -251,6 +253,8 @@ class QuadOptimizer:
                 print()
                 print("mpc_u: ")
                 print(mpc_u_)
+                print()
+                print("---------------------------------------")
                 # print(self.att_command.thrust)
                 # yaw_command_ = self.yaw_command(current_yaw_, trajectory_path_[1, -1], 0.0)
                 # yaw_command_ = self.yaw_controller(trajectory_path_[1, -1]-current_yaw_)
