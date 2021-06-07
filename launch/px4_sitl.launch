@@ -15,7 +15,7 @@
   <!-- where your sitl_gazebo is stored -->
   <arg name="sitl_gazebo_path" default="/home/gekeleda/Projektarbeit/PX4-Autopilot/Tools/sitl_gazebo" />
   <!-- your world definition -->
-  <arg name="world_file" default="itm_s500.world" />
+  <arg name="world_file" default="itm_s500_pendulum.world" />
 
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
     <arg name="world_name" value="$(arg sitl_gazebo_path)/worlds/$(arg world_file)"/>

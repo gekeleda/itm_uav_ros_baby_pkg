@@ -54,7 +54,7 @@ class QuadOptimizer:
         ## the robot state
         robot_state_sub_ = rospy.Subscriber('/robot_pose', Odometry, self.robot_state_callback)
         ## pendulum state
-        pendulum_state_sub_ = rospy.Subscriber('/pendulum_pose', Odometry, self.pendulum_state_callback)
+        # pendulum_state_sub_ = rospy.Subscriber('/pendulum_pose', Odometry, self.pendulum_state_callback)
         ## trajectory
         robot_trajectory_sub_ = rospy.Subscriber('/robot_trajectory', itm_trajectory_msg, self.trajectory_command_callback)
         # publisher
@@ -71,8 +71,13 @@ class QuadOptimizer:
         self.att_thread.start()
 
     def robot_state_callback(self, data):
-        # robot state as [x, y, z, vx, vy, vz, s, r, ds, dr, roll, pitch, yaw]
+        # robot state as [x, y, z, vx, vy, vz, roll, pitch, yaw]
         roll, pitch, yaw = self.quaternion_to_rpy(data.pose.pose.orientation)
+
+        # self.current_state[:6] = np.array([data.pose.pose.position.x, data.pose.pose.position.y, data.pose.pose.position.z,
+        #                                 data.twist.twist.linear.x, data.twist.twist.linear.y, data.twist.twist.linear.z]).reshape(6,1)
+        # self.current_state[-3:] = np.array([roll, pitch, yaw]).reshape(3,1)
+
         self.current_state = np.array([data.pose.pose.position.x, data.pose.pose.position.y, data.pose.pose.position.z,
                                         data.twist.twist.linear.x, data.twist.twist.linear.y, data.twist.twist.linear.z,
                                         data.pose.pose.position.x, data.pose.pose.position.y, 0., 0.,
@@ -82,13 +87,13 @@ class QuadOptimizer:
         # pendulum state as [x, y, z, vx, vy, vz, s, r, ds, dr, roll, pitch, yaw]
         # s, r = data.pose.pose.position.x, data.pose.pose.position.y
         # ds, dr = data.twist.twist.linear.x, data.twist.twist.linear.y
-        s, r = self.current_state[0], self.current_state[1]
-        ds, dr = 0., 0.
+        pass
+        # self.current_state[7:10] = np.array([s, r, ds, dr]).reshape(4,1)
+
         # self.current_state_pendulum = np.array([self.current_state[0], self.current_state[1], self.current_state[2],
         #                                 self.current_state[3], self.current_state[4], self.current_state[5],
         #                                 s, r, ds, dr,
         #                                 self.current_state[10], self.current_state[11], self.current_state[12]], dtype=np.float64)
-
 
     def trajectory_command_callback(self, data):
         temp_traj = data.traj
@@ -126,14 +131,15 @@ class QuadOptimizer:
         # P_m_[5, 2] = 10.95
         # R_m_ = np.diag([50.0, 60.0, 1.0])
         Q_m_ = np.diag([10.0, 10.0, 10.0,
-                3.0, 3.0, 3.0,
-                0.1, 0.1, 0.1, 0.1,
-                0.5, 0.5, 0.5])  # position, velocity, roll, pitch, (not yaw)
+                0.3, 0.3, 0.3,
+                0.001, 0.001, 0.001, 0.001,
+                0.05, 0.05, 0.05])  # position, velocity, load_position, load_velocity, roll, pitch, yaw
 
         P_m_ = np.diag([10.0, 10.0, 10.0,
-                        1.0, 1.0, 1.0,
-                        0.1, 0.1, 0.1, 0.1,
-                        0.1, 0.1, 0.1])  # only p and v
+                        0.05, 0.05, 0.05
+                        # 0.1, 0.1, 0.1, 0.1,
+                        # 0.1, 0.1, 0.1
+                        ])  # only p and v
         # P_m_[0, 8] = 6.45
         # P_m_[8, 0] = 6.45
         # P_m_[1, 9] = 6.45
@@ -174,12 +180,12 @@ class QuadOptimizer:
         ocp.cost.Vx[:nx, :nx] = np.eye(nx)
         ocp.cost.Vu = np.zeros((ny, nu))
         ocp.cost.Vu[-nu:, -nu:] = np.eye(nu)
-        ocp.cost.Vx_e = np.zeros((nx, nx)) # only consider p and v
-        ocp.cost.Vx_e[:nx-2, :nx-2] = np.eye(nx-2)
+        ocp.cost.Vx_e = np.zeros((nx-7, nx)) # only consider p and v
+        ocp.cost.Vx_e[:nx-7, :nx-7] = np.eye(nx-7)
 
         # initial reference trajectory_ref
         x_ref = np.zeros(nx)
-        x_ref_e = np.zeros(nx)
+        x_ref_e = np.zeros(nx-7)
         u_ref = np.zeros(nu)
         u_ref[-1] = self.g
         ocp.cost.yref = np.concatenate((x_ref, u_ref))
@@ -223,7 +229,7 @@ class QuadOptimizer:
             print("current trajectory: ")
             print(current_trajectory[-1])
 
-            self.solver.set(self.N, 'yref', current_trajectory[-1])
+            self.solver.set(self.N, 'yref', current_trajectory[-1, :6])
             for i in range(self.N):
                 self.solver.set(i, 'yref', np.concatenate([current_trajectory[i].flatten(), u_des]))
 
@@ -238,20 +244,22 @@ class QuadOptimizer:
                 # print(self.current_state)
                 self.att_command.orientation = Quaternion(*self.rpy_to_quaternion(0.0, 0.0, 0.0, w_first=False))
                 #self.att_command.thrust = 0.5
-                self.att_command.thrust = 0.5
+                self.att_command.thrust = 0.62
                 self.att_command.body_rate.z = 0.0
             else:
+                print()
+                print("predicted trajectory:")
                 for i in range(self.N):
                     print(self.solver.get(i, 'x'))
                 mpc_u_ = self.solver.get(0, 'u')
-                quat_local_ =   self.rpy_to_quaternion(mpc_u_[0], mpc_u_[1], 0, w_first=False)
+                quat_local_ =   self.rpy_to_quaternion(mpc_u_[0], mpc_u_[1], mpc_u_[2], w_first=False)
                 self.att_command.orientation.x = quat_local_[0]
                 self.att_command.orientation.y = quat_local_[1]
                 self.att_command.orientation.z = quat_local_[2]
                 self.att_command.orientation.w = quat_local_[3]
                 # print(self.att_command.orientation)
                 #self.att_command.thrust = mpc_u_[2]/9.8066 - 0.5
-                self.att_command.thrust = mpc_u_[3]/9.8066 - 0.62
+                self.att_command.thrust = mpc_u_[3]/9.8066 - 0.38
                 print()
                 print("mpc_u: ")
                 print(mpc_u_)
@@ -261,10 +269,11 @@ class QuadOptimizer:
                 # yaw_command_ = self.yaw_command(current_yaw_, trajectory_path_[1, -1], 0.0)
                 # yaw_command_ = self.yaw_controller(trajectory_path_[1, -1]-current_yaw_)
                 # self.att_command.angular.z = yaw_command_
-                self.att_command.body_rate.z = 0.0
+                #self.att_command.body_rate.z = 0.0
 
             # self.att_setpoint_pub.publish(self.att_command)
-            # print(time.time()-time_1)
+            print("time: ")
+            print(time.time()-time_1)
 
         else:
             if self.trajectory_path is None:

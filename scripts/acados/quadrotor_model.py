@@ -13,24 +13,21 @@ from acados_template import AcadosModel
 class QuadRotorModel(object):
     def __init__(self, ):
         #constants
-        g = 9.81
-        i_x = 1.
-        i_y = 1.
-        i_z = 1.
+        g = 9.8066
         l = 1.
 
         # control inputs
         roll_ref = ca.SX.sym('roll_ref_')
         pitch_ref = ca.SX.sym('pitch_ref_')
-        yaw_ref = ca.SX.sym('yaw_ref')
+        yaw_ref = ca.SX.sym('yaw_ref_')
         thrust_ref = ca.SX.sym('thrust_ref_')
         controls = ca.vcat([roll_ref, pitch_ref, yaw_ref, thrust_ref])
 
         # model constants after SI
-        roll_gain = 0.75
-        roll_tau = 0.257
-        pitch_gain = 0.78
-        pitch_tau = 0.259
+        roll_gain = 2.477
+        roll_tau = 0.477
+        pitch_gain = 2.477
+        pitch_tau = 0.477
 
         # roll_gain = 1.477
         # roll_tau = 0.477
@@ -100,12 +97,12 @@ class QuadRotorModel(object):
 
         ### CONSTRAINTS
         constraints = ca.types.SimpleNamespace()
-        constraints.roll_min = np.deg2rad(-45)
-        constraints.pitch_min = np.deg2rad(-45)
-        constraints.roll_max = np.deg2rad(45)
-        constraints.pitch_max = np.deg2rad(45)
-        constraints.yaw_min = np.deg2rad(-45)
-        constraints.yaw_max = np.deg2rad(45)
+        constraints.roll_min = np.deg2rad(-85)
+        constraints.pitch_min = np.deg2rad(-85)
+        constraints.roll_max = np.deg2rad(85)
+        constraints.pitch_max = np.deg2rad(85)
+        constraints.yaw_min = np.deg2rad(-85)
+        constraints.yaw_max = np.deg2rad(85)
         constraints.thrust_min = 0.5*g
         constraints.thrust_max = 1.9*g
         constraints.s_min = -l
