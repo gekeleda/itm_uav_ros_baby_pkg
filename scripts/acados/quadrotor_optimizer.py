@@ -1,10 +1,10 @@
-#!/usr/bin/env python3
+    #!/usr/bin/env python3
 # coding=UTF-8
 '''
 Author: Wei Luo
 Date: 2021-03-21 22:27:50
 LastEditors: Wei Luo
-LastEditTime: 2021-03-30 00:12:20
+LastEditTime: 2021-06-10 23:36:29
 Note: Note
 '''
 import os
@@ -20,7 +20,7 @@ import time
 import rospy
 from geometry_msgs.msg import Twist, PoseStamped
 from std_msgs.msg import Empty
-from nav_msgs.msg  import Odometry
+from nav_msgs.msg import Odometry
 from itm_mav_msgs.msg import itm_trajectory_msg
 from std_srvs.srv import SetBool, SetBoolResponse
 from mavros_msgs.msg import AttitudeTarget
@@ -29,6 +29,7 @@ from threading import Thread
 from std_msgs.msg import Header
 
 import matplotlib.pyplot as plt
+
 
 class QuadOptimizer:
     def __init__(self, quad_model, quad_constraints, t_horizon, n_nodes, sim_required=False, max_hight=1.0):
@@ -41,7 +42,7 @@ class QuadOptimizer:
 
         robot_name_ = rospy.get_param("~robot_name", "bebop1_r")
         self.current_pose = None
-        self.current_state = np.zeros((13,1))
+        self.current_state = np.zeros((13, 1))
         self.dt = 0.02
         self.rate = rospy.Rate(1/self.dt)
         self.time_stamp = None
@@ -49,16 +50,20 @@ class QuadOptimizer:
         self.current_twist = np.zeros(3)
         self.att_command = AttitudeTarget()
         self.att_command.type_mask = 3
+        self.pendulum_state = np.zeros(4)
 
         # subscribers
-        ## the robot state
-        robot_state_sub_ = rospy.Subscriber('/robot_pose', Odometry, self.robot_state_callback)
-        ## pendulum state
-        # pendulum_state_sub_ = rospy.Subscriber('/pendulum_pose', Odometry, self.pendulum_state_callback)
-        ## trajectory
-        robot_trajectory_sub_ = rospy.Subscriber('/robot_trajectory', itm_trajectory_msg, self.trajectory_command_callback)
+        # the robot state
+        robot_state_sub_ = rospy.Subscriber(
+            '/robot_pose', Odometry, self.robot_state_callback)
+        # pendulum state
+        pendulum_state_sub_ = rospy.Subscriber('/pendulum_pose', Odometry, self.pendulum_state_callback)
+        # trajectory
+        robot_trajectory_sub_ = rospy.Subscriber(
+            '/robot_trajectory', itm_trajectory_msg, self.trajectory_command_callback)
         # publisher
-        self.att_setpoint_pub = rospy.Publisher('/mavros/setpoint_raw/attitude', AttitudeTarget, queue_size=1)
+        self.att_setpoint_pub = rospy.Publisher(
+            '/mavros/setpoint_raw/attitude', AttitudeTarget, queue_size=1)
         # create a server
         server_ = rospy.Service('uav_mpc_server', SetBool, self.state_server)
 
@@ -79,16 +84,17 @@ class QuadOptimizer:
         # self.current_state[-3:] = np.array([roll, pitch, yaw]).reshape(3,1)
 
         self.current_state = np.array([data.pose.pose.position.x, data.pose.pose.position.y, data.pose.pose.position.z,
-                                        data.twist.twist.linear.x, data.twist.twist.linear.y, data.twist.twist.linear.z,
-                                        data.pose.pose.position.x, data.pose.pose.position.y, 0., 0.,
-                                        roll, pitch, yaw], dtype=np.float64)
+                                       data.twist.twist.linear.x, data.twist.twist.linear.y, data.twist.twist.linear.z,
+                                       data.pose.pose.position.x, data.pose.pose.position.y, 0., 0.,
+                                       roll, pitch, yaw], dtype=np.float64)
 
     def pendulum_state_callback(self, data):
         # pendulum state as [x, y, z, vx, vy, vz, s, r, ds, dr, roll, pitch, yaw]
-        # s, r = data.pose.pose.position.x, data.pose.pose.position.y
-        # ds, dr = data.twist.twist.linear.x, data.twist.twist.linear.y
-        pass
-        # self.current_state[7:10] = np.array([s, r, ds, dr]).reshape(4,1)
+        s, r = data.pose.pose.position.x, data.pose.pose.position.y
+        ds, dr = data.twist.twist.linear.x, data.twist.twist.linear.y
+        # pass
+        # self.current_state[7:10] = np.array([s, r, ds, dr]).reshape(4, 1)
+        self.pendulum_state = np.array([s, r, ds, dr])  # .reshape(4, 1)
 
         # self.current_state_pendulum = np.array([self.current_state[0], self.current_state[1], self.current_state[2],
         #                                 self.current_state[3], self.current_state[4], self.current_state[5],
@@ -115,7 +121,7 @@ class QuadOptimizer:
                                                     temp_traj[i].roll,
                                                     temp_traj[i].pitch,
                                                     temp_traj[i].yaw,
-                ])
+                                                    ])
 
     def quadrotor_optimizer_setup(self, ):
         # Q_m_ = np.diag([80.0, 80.0, 120.0, 20.0, 20.0,
@@ -131,9 +137,9 @@ class QuadOptimizer:
         # P_m_[5, 2] = 10.95
         # R_m_ = np.diag([50.0, 60.0, 1.0])
         Q_m_ = np.diag([10.0, 10.0, 10.0,
-                0.3, 0.3, 0.3,
-                0.001, 0.001, 0.001, 0.001,
-                0.05, 0.05, 0.05])  # position, velocity, load_position, load_velocity, roll, pitch, yaw
+                        0.3, 0.3, 0.3,
+                        0.001, 0.001, 0.001, 0.001,
+                        0.05, 0.05, 0.05])  # position, velocity, load_position, load_velocity, roll, pitch, yaw
 
         P_m_ = np.diag([10.0, 10.0, 10.0,
                         0.05, 0.05, 0.05
@@ -153,7 +159,8 @@ class QuadOptimizer:
         nu = self.model.u.size()[0]
         self.nu = nu
         ny = nx + nu
-        n_params = self.model.p.size()[0] if isinstance(self.model.p, ca.SX) else 0
+        n_params = self.model.p.size()[0] if isinstance(
+            self.model.p, ca.SX) else 0
 
         acados_source_path = os.environ['ACADOS_SOURCE_DIR']
         sys.path.insert(0, acados_source_path)
@@ -174,13 +181,13 @@ class QuadOptimizer:
         ocp.cost.cost_type = 'LINEAR_LS'
         ocp.cost.cost_type_e = 'LINEAR_LS'
         ocp.cost.W = scipy.linalg.block_diag(Q_m_, R_m_)
-        ocp.cost.W_e = P_m_ # np.zeros((nx-3, nx-3))
+        ocp.cost.W_e = P_m_  # np.zeros((nx-3, nx-3))
 
         ocp.cost.Vx = np.zeros((ny, nx))
         ocp.cost.Vx[:nx, :nx] = np.eye(nx)
         ocp.cost.Vu = np.zeros((ny, nu))
         ocp.cost.Vu[-nu:, -nu:] = np.eye(nu)
-        ocp.cost.Vx_e = np.zeros((nx-7, nx)) # only consider p and v
+        ocp.cost.Vx_e = np.zeros((nx-7, nx))  # only consider p and v
         ocp.cost.Vx_e[:nx-7, :nx-7] = np.eye(nx-7)
 
         # initial reference trajectory_ref
@@ -192,8 +199,10 @@ class QuadOptimizer:
         ocp.cost.yref_e = x_ref_e
 
         # Set constraints
-        ocp.constraints.lbu = np.array([self.constraints.roll_min, self.constraints.pitch_min, self.constraints.yaw_min, self.constraints.thrust_min])
-        ocp.constraints.ubu = np.array([self.constraints.roll_max, self.constraints.pitch_max, self.constraints.yaw_max, self.constraints.thrust_max])
+        ocp.constraints.lbu = np.array(
+            [self.constraints.roll_min, self.constraints.pitch_min, self.constraints.yaw_min, self.constraints.thrust_min])
+        ocp.constraints.ubu = np.array(
+            [self.constraints.roll_max, self.constraints.pitch_max, self.constraints.yaw_max, self.constraints.thrust_max])
         ocp.constraints.idxbu = np.array([0, 1, 2, 3])
 
         # initial state
@@ -205,7 +214,7 @@ class QuadOptimizer:
         # explicit Runge-Kutta integrator
         ocp.solver_options.integrator_type = 'ERK'
         ocp.solver_options.print_level = 0
-        ocp.solver_options.nlp_solver_type = 'SQP' # 'SQP_RTI'
+        ocp.solver_options.nlp_solver_type = 'SQP'  # 'SQP_RTI'
 
         # compile acados ocp
         json_file = os.path.join('./'+self.model.name+'_acados_ocp.json')
@@ -220,51 +229,59 @@ class QuadOptimizer:
             # mpcX = np.zeros((self.n_nodes+1, self.nx))
             # mpcU = np.zeros((self.n_nodes, self.nu))
             current_trajectory = self.trajectory_path
-            print()
-            print("current state: ")
+            # print()
+            # print("current state: ")
             np.set_printoptions(suppress=True)
-            print(self.current_state)
+            # print(self.current_state)
             u_des = np.array([0.0, 0.0, 0.0, self.g])
-            print()
-            print("current trajectory: ")
-            print(current_trajectory[-1])
+            # print()
+            # print("current trajectory: ")
+            # print(current_trajectory[-1])
+            new_state = self.current_state
+            new_state[6:10] = self.pendulum_state
 
             self.solver.set(self.N, 'yref', current_trajectory[-1, :6])
             for i in range(self.N):
-                self.solver.set(i, 'yref', np.concatenate([current_trajectory[i].flatten(), u_des]))
+                self.solver.set(i, 'yref', np.concatenate(
+                    [current_trajectory[i].flatten(), u_des]))
 
-            self.solver.set(0, 'lbx', self.current_state)
-            self.solver.set(0, 'ubx', self.current_state)
+            # self.solver.set(0, 'lbx', self.current_state)
+            # self.solver.set(0, 'ubx', self.current_state)
+            self.solver.set(0, 'lbx', new_state)
+            self.solver.set(0, 'ubx', new_state)
 
             status = self.solver.solve()
 
-            if status !=0 :
+            if status != 0:
                 rospy.logerr("MPC cannot find a proper solution.")
-                #self.solver.print_statistics()
+                # self.solver.print_statistics()
                 # print(self.current_state)
-                self.att_command.orientation = Quaternion(*self.rpy_to_quaternion(0.0, 0.0, 0.0, w_first=False))
+                self.att_command.orientation = Quaternion(
+                    *self.rpy_to_quaternion(0.0, 0.0, 0.0, w_first=False))
                 #self.att_command.thrust = 0.5
                 self.att_command.thrust = 0.62
                 self.att_command.body_rate.z = 0.0
             else:
-                print()
-                print("predicted trajectory:")
-                for i in range(self.N):
-                    print(self.solver.get(i, 'x'))
+                # print()
+                # print("predicted trajectory:")
+                # for i in range(self.N):
+                #     print(self.solver.get(i, 'x'))
                 mpc_u_ = self.solver.get(0, 'u')
-                quat_local_ =   self.rpy_to_quaternion(mpc_u_[0], mpc_u_[1], mpc_u_[2], w_first=False)
+                quat_local_ = self.rpy_to_quaternion(
+                    mpc_u_[0], mpc_u_[1], mpc_u_[2], w_first=False)
                 self.att_command.orientation.x = quat_local_[0]
                 self.att_command.orientation.y = quat_local_[1]
                 self.att_command.orientation.z = quat_local_[2]
                 self.att_command.orientation.w = quat_local_[3]
                 # print(self.att_command.orientation)
                 #self.att_command.thrust = mpc_u_[2]/9.8066 - 0.5
-                self.att_command.thrust = mpc_u_[3]/9.8066 - 0.38
-                print()
-                print("mpc_u: ")
-                print(mpc_u_)
-                print()
-                print("---------------------------------------")
+                # self.att_command.thrust = mpc_u_[3]/9.8066 - 0.38
+                self.att_command.thrust = mpc_u_[3]/9.8066*0.6
+                # print()
+                # print("mpc_u: ")
+                # print(mpc_u_)
+                # print()
+                # print("---------------------------------------")
                 # print(self.att_command.thrust)
                 # yaw_command_ = self.yaw_command(current_yaw_, trajectory_path_[1, -1], 0.0)
                 # yaw_command_ = self.yaw_controller(trajectory_path_[1, -1]-current_yaw_)
@@ -330,15 +347,16 @@ class QuadOptimizer:
                 pass
             # print("publsich loop takes {} seconds".format(time.time() - t2))
 
+
 if __name__ == '__main__':
     rospy.init_node('offboard_mpc_controller')
     quad_rotor_model = QuadRotorModel()
     try:
         mpc_obj = QuadOptimizer(quad_model=quad_rotor_model.model,
-        quad_constraints=quad_rotor_model.constraints,
-        t_horizon=2.,
-        n_nodes=20
-        )
+                                quad_constraints=quad_rotor_model.constraints,
+                                t_horizon=2.,
+                                n_nodes=20
+                                )
         mpc_model_is_ready = True
     except ImportError:
         rospy.logerr('Cannot find any MPC library, Stop the node')
