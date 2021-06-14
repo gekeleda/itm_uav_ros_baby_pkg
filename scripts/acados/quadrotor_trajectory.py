@@ -5,7 +5,7 @@ from itm_mav_msgs.msg import itm_trajectory_msg
 from itm_mav_msgs.msg import itm_trajectory_point
 from std_msgs.msg import Header
 
-reference_point = np.array([0., 0., 1.0, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
+reference_point = np.array([0.5, 0., 1.0, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
 n_nodes = 20
 
 def talker():
