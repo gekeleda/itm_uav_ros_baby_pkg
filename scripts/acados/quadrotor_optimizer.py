@@ -1,4 +1,4 @@
-    #!/usr/bin/env python3
+#!/usr/bin/env python3
 # coding=UTF-8
 '''
 Author: Wei Luo
@@ -92,7 +92,6 @@ class QuadOptimizer:
         # pendulum state as [x, y, z, vx, vy, vz, s, r, ds, dr, roll, pitch, yaw]
         s, r = data.pose.pose.position.x, data.pose.pose.position.y
         ds, dr = data.twist.twist.linear.x, data.twist.twist.linear.y
-        # pass
         # self.current_state[7:10] = np.array([s, r, ds, dr]).reshape(4, 1)
         self.pendulum_state = np.array([s, r, ds, dr])  # .reshape(4, 1)
 
@@ -138,8 +137,8 @@ class QuadOptimizer:
         # R_m_ = np.diag([50.0, 60.0, 1.0])
         Q_m_ = np.diag([10.0, 10.0, 10.0,
                         0.3, 0.3, 0.3,
-                        0.001, 0.001, 0.001, 0.001,
-                        0.05, 0.05, 0.05])  # position, velocity, load_position, load_velocity, roll, pitch, yaw
+                        1.0, 1.0, 0.03, 0.03,
+                        0.5, 0.5, 0.5])  # position, velocity, load_position, load_velocity, roll, pitch, yaw
 
         P_m_ = np.diag([10.0, 10.0, 10.0,
                         0.05, 0.05, 0.05
@@ -229,16 +228,23 @@ class QuadOptimizer:
             # mpcX = np.zeros((self.n_nodes+1, self.nx))
             # mpcU = np.zeros((self.n_nodes, self.nu))
             current_trajectory = self.trajectory_path
+
+            u_des = np.array([0.0, 0.0, 0.0, self.g])
+            new_state = self.current_state
+            # new_state[6:10] = self.pendulum_state
+            new_state[6] = self.pendulum_state[0]-self.current_state[0]
+            new_state[7] = self.pendulum_state[1]-self.current_state[1]
+            new_state[8] = self.pendulum_state[2]-self.current_state[3]
+            new_state[9] = self.pendulum_state[3]-self.current_state[4]
+
             # print()
             # print("current state: ")
-            np.set_printoptions(suppress=True)
-            # print(self.current_state)
-            u_des = np.array([0.0, 0.0, 0.0, self.g])
+            # np.set_printoptions(suppress=True)
+            # print(new_state)
+
             # print()
             # print("current trajectory: ")
             # print(current_trajectory[-1])
-            new_state = self.current_state
-            new_state[6:10] = self.pendulum_state
 
             self.solver.set(self.N, 'yref', current_trajectory[-1, :6])
             for i in range(self.N):
@@ -289,8 +295,8 @@ class QuadOptimizer:
                 #self.att_command.body_rate.z = 0.0
 
             # self.att_setpoint_pub.publish(self.att_command)
-            print("time: ")
-            print(time.time()-time_1)
+            # print("time: ")
+            # print(time.time()-time_1)
 
         else:
             if self.trajectory_path is None:
