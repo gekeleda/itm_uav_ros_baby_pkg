@@ -14,7 +14,7 @@ class QuadRotorModel(object):
     def __init__(self, ):
         #constants
         g = 9.8066
-        l = 1.
+        l = 1. ########################################## ACTUALLY 0.1 BUT DOESNT WORK THEN!!! #############################################
 
         # control inputs
         roll_ref = ca.SX.sym('roll_ref_')
