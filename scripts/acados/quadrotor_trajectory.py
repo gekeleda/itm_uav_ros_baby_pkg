@@ -13,7 +13,7 @@ n_nodes = 20
 
 reference_point = np.array([1.0, 0., 1.0, 0., 0., 0., 1.0, 0., 1.0-l, 0., 0., 0., 0.])
 
-vel = 0.6
+vel = 0.5
 veliter = vel/n_nodes
 dist = np.linalg.norm(reference_point[:6])
 steps = int(dist/veliter)
