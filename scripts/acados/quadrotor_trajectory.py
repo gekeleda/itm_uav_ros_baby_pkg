@@ -11,19 +11,22 @@ delay_init = 100
 delay_traj = 200
 n_nodes = 20
 
-reference_point = np.array([1.0, 0., 1.0, 0., 0., 0., 1.0, 0., 1.0-l, 0., 0., 0., 0.])
+reference_point = np.array(
+    [1.0, 0., 1.0, 0., 0., 0., 1.0, 0., 1.0-l, 0., 0., 0., 0.])
 
 vel = 0.5
 veliter = vel/n_nodes
 dist = np.linalg.norm(reference_point[:6])
 steps = int(dist/veliter)
 
+
 def trajectory_generator(iter, current_trajectory):
-    traj_k = 30 # 30
+    traj_k = 30  # 30
     next_trajectories = current_trajectory[1:, :]
     next_trajectories = np.concatenate((next_trajectories,
-    np.array([np.cos((iter)/traj_k), np.sin((iter)/traj_k), 1.0, 0.0, 0.0, 0.0, np.cos((iter)/traj_k), np.sin((iter)/traj_k), 1.0-l, 0.0, 0.0, 0.0, 0.0]).reshape(1, -1)))
+                                        np.array([np.cos((iter)/traj_k), np.sin((iter)/traj_k), 1.0, 0.0, 0.0, 0.0, np.cos((iter)/traj_k), np.sin((iter)/traj_k), 1.0-l, 0.0, 0.0, 0.0, 0.0]).reshape(1, -1)))
     return next_trajectories
+
 
 def makePoint(reference_point):
     point = itm_trajectory_point()
@@ -42,6 +45,7 @@ def makePoint(reference_point):
     point.yaw = reference_point[12]
     return point
 
+
 def makeMsg(trajectory):
     msg = itm_trajectory_msg()
     msg.header = Header()
@@ -53,18 +57,21 @@ def makeMsg(trajectory):
         msg.traj.append(point)
     return msg
 
+
 def getTrajectory(i, old_trajectory):
     if i < delay_traj:
         next_trajectories = old_trajectory[1:, :]
         fac = min((i-delay_init)/steps, 1.)
-        next_trajectories = np.concatenate((next_trajectories, (fac*reference_point).reshape(1, -1)))
+        next_trajectories = np.concatenate(
+            (next_trajectories, (fac*reference_point).reshape(1, -1)))
         return next_trajectories
     else:
         return trajectory_generator(i-delay_traj, old_trajectory)
 
 
 def talker():
-    pub = rospy.Publisher('/robot_trajectory', itm_trajectory_msg, queue_size=1)
+    pub = rospy.Publisher('/robot_trajectory',
+                          itm_trajectory_msg, queue_size=1)
     rospy.init_node('trajectory_node')
     dt = 0.1
     rate = rospy.Rate(1/dt)
@@ -73,7 +80,7 @@ def talker():
 
     i = 0
     while not rospy.is_shutdown():
-        #rospy.loginfo(msg)
+        # rospy.loginfo(msg)
         if i == delay_init:
             for k in range(n_nodes):
                 trajectory[k] = k/steps * reference_point
@@ -81,10 +88,11 @@ def talker():
         if i >= delay_init:
             trajectory = getTrajectory(i, trajectory)
 
-        msg = makeMsg(trajectory)
-        pub.publish(msg)
-        i+=1
+            msg = makeMsg(trajectory)
+            pub.publish(msg)
+        i += 1
         rate.sleep()
+
 
 if __name__ == '__main__':
     try:
