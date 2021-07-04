@@ -137,13 +137,13 @@ class QuadOptimizer:
         # R_m_ = np.diag([50.0, 60.0, 1.0])
         Q_m_ = np.diag([10.0, 10.0, 10.0,
                         0.3, 0.3, 0.3,
-                        0.03, 0.03, 0.03, 0.03,
-                        0.5, 0.5, 0.5])  # position, velocity, load_position, load_velocity, roll, pitch, yaw
+                        3e-5, 3e-5, 3e-5, 3e-5,
+                        0.5, 0.5, 0.5])  # position, velocity, load_position, load_velocity, [roll, pitch, yaw]
 
         P_m_ = np.diag([10.0, 10.0, 10.0,
                         0.05, 0.05, 0.05
-                        # 0.1, 0.1, 0.1, 0.1,
-                        # 0.1, 0.1, 0.1
+                        # 10.0, 10.0, 10.0,
+                        # 0.05, 0.05, 0.05
                         ])  # only p and v
         # P_m_[0, 8] = 6.45
         # P_m_[8, 0] = 6.45
@@ -261,7 +261,16 @@ class QuadOptimizer:
             if status != 0:
                 rospy.logerr("MPC cannot find a proper solution.")
                 # self.solver.print_statistics()
-                # print(self.current_state)
+                print()
+                print("current state: ")
+                np.set_printoptions(suppress=True)
+                print(new_state)
+
+                print()
+                print("current trajectory: ")
+                print(current_trajectory[-1])
+
+
                 self.att_command.orientation = Quaternion(
                     *self.rpy_to_quaternion(0.0, 0.0, 0.0, w_first=False))
                 #self.att_command.thrust = 0.5
@@ -280,9 +289,9 @@ class QuadOptimizer:
                 self.att_command.orientation.z = quat_local_[2]
                 self.att_command.orientation.w = quat_local_[3]
                 # print(self.att_command.orientation)
-                #self.att_command.thrust = mpc_u_[2]/9.8066 - 0.5
+                #self.att_command.thrust = mpc_u_[3]/9.8066 - 0.5
                 # self.att_command.thrust = mpc_u_[3]/9.8066 - 0.38
-                self.att_command.thrust = mpc_u_[3]/9.8066*0.6
+                self.att_command.thrust = mpc_u_[3]/9.8066*0.62
                 # print()
                 # print("mpc_u: ")
                 # print(mpc_u_)
