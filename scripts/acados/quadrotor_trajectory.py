@@ -5,8 +5,8 @@ from itm_mav_msgs.msg import itm_trajectory_msg
 from itm_mav_msgs.msg import itm_trajectory_point
 from std_msgs.msg import Header
 
-delay_init = 100
-delay_traj = 180
+delay_init = 120
+delay_traj = 190
 n_nodes = 20
 
 reference_point = np.array([1.0, 0.0, 1.0, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
@@ -17,7 +17,7 @@ dist = np.linalg.norm(reference_point[:6])
 steps = int(dist/veliter)
 
 def trajectory_generator(iter_n, current_trajectory):
-    traj_fac = 120 # 30
+    traj_fac = 30 # 30
     next_trajectories = current_trajectory[1:, :]
     next_trajectories = np.concatenate((next_trajectories,
     np.array([np.cos((iter_n)/traj_fac), np.sin((iter_n)/traj_fac), 1.0, 0.0, 0.0, 0.0, 0., 0., 0.0, 0.0, 0.0, 0.0, 0.0]).reshape(1, -1)))

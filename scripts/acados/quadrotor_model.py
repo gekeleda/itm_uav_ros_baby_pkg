@@ -103,8 +103,8 @@ class QuadRotorModel(object):
         constraints.pitch_max = np.deg2rad(85)
         constraints.yaw_min = np.deg2rad(-85)
         constraints.yaw_max = np.deg2rad(85)
-        constraints.thrust_min = 0.5*g
-        constraints.thrust_max = 1.9*g
+        constraints.thrust_min = 0.0*g # 0.5*g
+        constraints.thrust_max = 1.9*g # 1.9*g
         constraints.s_min = -l
         constraints.s_max = l
         constraints.r_min = -l
