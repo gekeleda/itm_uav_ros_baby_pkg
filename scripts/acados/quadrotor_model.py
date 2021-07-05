@@ -14,7 +14,7 @@ class QuadRotorModel(object):
     def __init__(self, ):
         #constants
         g = 9.8066
-        l = 1.0 # actually 0.1, but becomes very unstable compared to 1.0 or greater
+        l = 0.1 # actually 0.1, but becomes very unstable compared to 1.0 or greater
 
         # control inputs
         roll_ref = ca.SX.sym('roll_ref_')
