@@ -215,7 +215,7 @@ class QuadOptimizer:
         ocp.solver_options.print_level = 0
         ocp.solver_options.nlp_solver_type = 'SQP_RTI'  # 'SQP_RTI'
 
-        ocp.solver_options.levenberg_marquardt = 0.07 # 0.0
+        ocp.solver_options.levenberg_marquardt = 0.05 # 0.0
 
         # compile acados ocp
         json_file = os.path.join('./'+self.model.name+'_acados_ocp.json')
