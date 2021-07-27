@@ -97,18 +97,18 @@ class QuadRotorModel(object):
 
         ### CONSTRAINTS
         constraints = ca.types.SimpleNamespace()
-        constraints.roll_min = np.deg2rad(-85)
-        constraints.pitch_min = np.deg2rad(-85)
-        constraints.roll_max = np.deg2rad(85)
-        constraints.pitch_max = np.deg2rad(85)
-        constraints.yaw_min = np.deg2rad(-85)
-        constraints.yaw_max = np.deg2rad(85)
+        constraints.roll_min = np.deg2rad(-45)
+        constraints.pitch_min = np.deg2rad(-45)
+        constraints.roll_max = np.deg2rad(45)
+        constraints.pitch_max = np.deg2rad(45)
+        constraints.yaw_min = np.deg2rad(-45)
+        constraints.yaw_max = np.deg2rad(45)
         constraints.thrust_min = 0.0*g # 0.5*g
         constraints.thrust_max = 1.9*g # 1.9*g
-        constraints.s_min = -l
-        constraints.s_max = l
-        constraints.r_min = -l
-        constraints.r_max = l
+        # constraints.s_min = -l
+        # constraints.s_max = l
+        # constraints.r_min = -l
+        # constraints.r_max = l
 
         self.model = model
         self.constraints = constraints
