@@ -17,7 +17,7 @@ dist = np.linalg.norm(reference_point[:6])
 steps = int(dist/veliter)
 
 def trajectory_generator(iter_n, current_trajectory, traj_shape='circle'):
-    if traj_shape=='helix':
+    if traj_shape=='spiral':
         traj_fac = 30 # 30
         kz = 0.005
         next_trajectories = current_trajectory[1:, :]
@@ -80,7 +80,7 @@ def getTrajectory(i, k, start_point, old_trajectory):
         next_trajectories = np.concatenate((next_trajectories, (fac*reference_point + (1-fac)*start_point).reshape(1, -1)))
         return next_trajectories
     else:
-        return trajectory_generator(i-delay_traj, old_trajectory, traj_shape="helix")
+        return trajectory_generator(i-delay_traj, old_trajectory, traj_shape="spiral")
 
 
 def talker():
