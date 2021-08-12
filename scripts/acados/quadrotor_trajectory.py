@@ -80,7 +80,7 @@ def getTrajectory(i, k, start_point, old_trajectory):
         next_trajectories = np.concatenate((next_trajectories, (fac*reference_point + (1-fac)*start_point).reshape(1, -1)))
         return next_trajectories
     else:
-        return trajectory_generator(i-delay_traj, old_trajectory, traj_shape="spiral")
+        return trajectory_generator(i-delay_traj, old_trajectory, traj_shape="eight") #shape: circle, spiral or eight
 
 
 def talker():
