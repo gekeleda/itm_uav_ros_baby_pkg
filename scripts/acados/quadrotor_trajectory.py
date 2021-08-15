@@ -5,13 +5,13 @@ from itm_mav_msgs.msg import itm_trajectory_msg
 from itm_mav_msgs.msg import itm_trajectory_point
 from std_msgs.msg import Header
 
-delay_init = 120
-delay_traj = 190
+delay_init = 150
+delay_traj = 275
 n_nodes = 20
 
 reference_point = np.array([1.0, 0.0, 1.0, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
 
-vel = 0.5
+vel = 0.4
 veliter = vel/n_nodes
 dist = np.linalg.norm(reference_point[:6])
 steps = int(dist/veliter)
@@ -80,7 +80,7 @@ def getTrajectory(i, k, start_point, old_trajectory):
         next_trajectories = np.concatenate((next_trajectories, (fac*reference_point + (1-fac)*start_point).reshape(1, -1)))
         return next_trajectories
     else:
-        return trajectory_generator(i-delay_traj, old_trajectory, traj_shape="eight") #shape: circle, spiral or eight
+        return trajectory_generator(i-delay_traj, old_trajectory, traj_shape="circle") #shape: circle, spiral or eight
 
 
 def talker():

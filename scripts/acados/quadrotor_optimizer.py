@@ -16,6 +16,7 @@ import casadi as ca
 import scipy.linalg
 import numpy as np
 import time
+import threading
 
 import rospy
 from geometry_msgs.msg import Twist, PoseStamped
@@ -136,9 +137,10 @@ class QuadOptimizer:
         # P_m_[5, 2] = 10.95
         # R_m_ = np.diag([50.0, 60.0, 1.0])
         Q_m_ = np.diag([10.0, 10.0, 10.0,
-                        0.4, 0.4, 0.4,
-                        3e-1, 3e-1, 3e-2, 3e-2,
-                        0.5, 0.5, 0.5])  # position, velocity, load_position, load_velocity, [roll, pitch, yaw]
+                        1e-2, 1e-2, 1e-2,
+                        #3e-1, 3e-1, 3e-2, 3e-2,
+                        42.0, 42.0, 1e-2, 1e-2,
+                        15.5, 15.5, 20.5])  # position, velocity, load_position, load_velocity, [roll, pitch, yaw]
 
         P_m_ = np.diag([10.0, 10.0, 10.0,
                         0.05, 0.05, 0.05
@@ -223,12 +225,10 @@ class QuadOptimizer:
         if self.simulation_required:
             self.integrator = AcadosSimSolver(ocp, json_file=json_file)
 
-    def mpc_estimation_loop(self,):
+    def mpc_estimation_loop(self, mpc_iter):
         if self.trajectory_path is not None and self.current_state is not None:
             time_1 = time.time()
             # dt = 0.1
-            # mpcX = np.zeros((self.n_nodes+1, self.nx))
-            # mpcU = np.zeros((self.n_nodes, self.nu))
             current_trajectory = self.trajectory_path
 
             u_des = np.array([0.0, 0.0, 0.0, self.g])
@@ -239,6 +239,9 @@ class QuadOptimizer:
             new_state[8] = self.pendulum_state[2]-self.current_state[3]
             new_state[9] = self.pendulum_state[3]-self.current_state[4]
 
+            simX[mpc_iter+1] = new_state
+            simD[mpc_iter] = current_trajectory[0]
+
             # print()
             # print("current state: ")
             # np.set_printoptions(suppress=True)
@@ -247,6 +250,8 @@ class QuadOptimizer:
             # print()
             # print("current trajectory: ")
             # print(current_trajectory[-1])
+
+
 
             self.solver.set(self.N, 'yref', current_trajectory[-1, :6])
             for i in range(self.N):
@@ -284,6 +289,7 @@ class QuadOptimizer:
                 # for i in range(self.N):
                 #     print(self.solver.get(i, 'x'))
                 mpc_u_ = self.solver.get(0, 'u')
+                simU[mpc_iter] = mpc_u_
                 quat_local_ = self.rpy_to_quaternion(
                     mpc_u_[0], mpc_u_[1], mpc_u_[2], w_first=False)
                 self.att_command.orientation.x = quat_local_[0]
@@ -293,7 +299,7 @@ class QuadOptimizer:
                 # print(self.att_command.orientation)
                 #self.att_command.thrust = mpc_u_[3]/9.8066 - 0.5
                 # self.att_command.thrust = mpc_u_[3]/9.8066 - 0.38
-                self.att_command.thrust = mpc_u_[3]/9.8066*0.62
+                self.att_command.thrust = mpc_u_[3]/9.8066*0.6175
                 # print()
                 # print("mpc_u: ")
                 # print(mpc_u_)
@@ -365,8 +371,56 @@ class QuadOptimizer:
             # print("publsich loop takes {} seconds".format(time.time() - t2))
 
 
+def plotPaths(simX, simD, mpc_iter):
+    l = 0.1
+    hX = np.sqrt(l*l - np.square(simX[:mpc_iter,6]) - np.square(simX[:mpc_iter, 7]))
+    hD = np.sqrt(l*l - np.square(simD[:mpc_iter,6]) - np.square(simD[:mpc_iter, 7]))
+    loadX = np.array([simX[:mpc_iter, 0]+simX[:mpc_iter, 6], simX[:mpc_iter,1]+simX[:mpc_iter, 7], simX[:mpc_iter, 2]-hX])
+    loadD = np.array([simD[:mpc_iter, 0]+simD[:mpc_iter, 6], simD[:mpc_iter,1]+simD[:mpc_iter, 7], simD[:mpc_iter, 2]-hD])
+
+    alphaX = np.rad2deg(np.arcsin(simX[:mpc_iter, 6] / l))
+    alphaD = np.rad2deg(np.arcsin(simD[:mpc_iter, 6] / l))
+
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    ax.plot(simX[:mpc_iter, 0], simX[:mpc_iter, 1], simX[:mpc_iter, 2], 'b')
+    ax.plot(simD[:mpc_iter, 0], simD[:mpc_iter, 1], simD[:mpc_iter, 2], 'b--')
+    ax.plot(loadX[0], loadX[1], loadX[2], 'r')
+    ax.plot(loadD[0], loadD[1], loadD[2], 'r--')
+    plt.show()
+    fig = plt.figure()
+    ax = fig.gca()
+    ax.plot(range(mpc_iter), simX[:mpc_iter, 0], )
+    ax.plot(range(mpc_iter), simD[:mpc_iter, 0], )
+    plt.title("x coordinate of quadcopter")
+    plt.show()
+    fig = plt.figure()
+    ax = fig.gca()
+    ax.plot(range(mpc_iter), loadX[0], )
+    ax.plot(range(mpc_iter), loadD[0], )
+    plt.title("x coordinate of pendulum")
+    plt.show()
+    fig = plt.figure()
+    ax = fig.gca()
+    ax.plot(range(mpc_iter), alphaX, )
+    ax.plot(range(mpc_iter), alphaD, )
+    plt.title("alpha angle of pendulum")
+    plt.ylabel("degrees")
+    plt.show()
+
 if __name__ == '__main__':
     rospy.init_node('offboard_mpc_controller')
+
+    sim_time = 50 # s
+    dt = 0.02 # s
+    nx = 13
+    nu = 4
+
+    simX = np.zeros((int(sim_time/dt+1), nx))
+    simX[0] = np.array([0.0, 0.0, 0.0, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
+    simD = np.zeros((int(sim_time/dt+1), nx))
+    simU = np.zeros((int(sim_time/dt), nu))
+
     quad_rotor_model = QuadRotorModel()
     try:
         mpc_obj = QuadOptimizer(quad_model=quad_rotor_model.model,
@@ -382,8 +436,13 @@ if __name__ == '__main__':
 
     time.sleep(2)
 
-    while not rospy.is_shutdown() and mpc_model_is_ready:
-        if not mpc_obj.mpc_estimation_loop():
+    main_iter = -1
+    while not rospy.is_shutdown() and mpc_model_is_ready and main_iter<sim_time/dt-1:
+        main_iter += 1
+        if not mpc_obj.mpc_estimation_loop(main_iter):
             rospy.logerr("MPC estimation failed")
-
+        # if main_iter%100==0:
+        #     print(main_iter)
+    
     print('MPC controller is shutdown')
+    plotPaths(simX, simD, main_iter)
