@@ -447,7 +447,7 @@ if __name__ == '__main__':
     print('MPC controller is shutdown')
     plotPaths(simX, simD, main_iter)
 
-    path = "/home/gekeleda/Projektarbeit/"
+    path = os.path.dirname(os.path.realpath(__file__))
 
     np.save(path + "simX.npy", simX)
     np.save(path + "simX.npy", simD)
