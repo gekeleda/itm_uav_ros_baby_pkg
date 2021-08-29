@@ -227,7 +227,7 @@ class QuadOptimizer:
 
     def mpc_estimation_loop(self, mpc_iter):
         if self.trajectory_path is not None and self.current_state is not None:
-            time_1 = time.time()
+            # time_1 = time.time()
             # dt = 0.1
             current_trajectory = self.trajectory_path
 
@@ -239,7 +239,7 @@ class QuadOptimizer:
             new_state[8] = self.pendulum_state[2]-self.current_state[3]
             new_state[9] = self.pendulum_state[3]-self.current_state[4]
 
-            simX[mpc_iter+1] = new_state
+            simX[mpc_iter] = new_state # mpc_iter+1 ?
             simD[mpc_iter] = current_trajectory[0]
 
             # print()
@@ -251,7 +251,9 @@ class QuadOptimizer:
             # print("current trajectory: ")
             # print(current_trajectory[-1])
 
-
+            tra = current_trajectory[0]
+            # error_xyz = np.linalg.norm(np.array([new_state[0] - tra[0], new_state[1] - tra[1], new_state[2] - tra[2]]))
+            # print(error_xyz)
 
             self.solver.set(self.N, 'yref', current_trajectory[-1, :6])
             for i in range(self.N):
@@ -275,7 +277,7 @@ class QuadOptimizer:
 
                 print()
                 print("current trajectory: ")
-                print(current_trajectory[-1])
+                print(current_trajectory[0])
 
 
                 self.att_command.orientation = Quaternion(
