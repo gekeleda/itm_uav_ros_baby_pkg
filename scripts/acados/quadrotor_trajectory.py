@@ -91,7 +91,7 @@ def talker():
     rate = rospy.Rate(1/dt)
 
     start_point = np.zeros_like(reference_point)
-    start_point[2] = 0.5
+    # start_point[2] = 0.5
     trajectory = np.array([start_point]*n_nodes)
 
     i = 0
