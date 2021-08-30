@@ -137,10 +137,10 @@ class QuadOptimizer:
         # P_m_[5, 2] = 10.95
         # R_m_ = np.diag([50.0, 60.0, 1.0])
         Q_m_ = np.diag([10.0, 10.0, 10.0,
-                        1e-2, 1e-2, 1e-2,
+                        3e-1, 3e-1, 3e-1,
                         #3e-1, 3e-1, 3e-2, 3e-2,
-                        42.0, 42.0, 1e-2, 1e-2,
-                        15.5, 15.5, 20.5])  # position, velocity, load_position, load_velocity, [roll, pitch, yaw]
+                        1e-4, 1e-4, 1e-4, 1e-4,
+                        0.5, 0.5, 0.5])  # position, velocity, load_position, load_velocity, [roll, pitch, yaw]
 
         P_m_ = np.diag([10.0, 10.0, 10.0,
                         0.05, 0.05, 0.05
