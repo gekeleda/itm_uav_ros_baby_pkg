@@ -12,7 +12,7 @@ n_nodes = 20
 dt = 0.1
 dt_rate = 0.01
 
-reference_point = np.array([1.0, 0.0, 1.0, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
+reference_point = np.array([0.0, 0.0, 1.0, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
 
 vel = 0.4
 veliter = vel/n_nodes
@@ -28,21 +28,21 @@ def trajectory_generator(iter_n, current_trajectory, traj_shape='circle'):
         # next_trajectories = np.concatenate((next_trajectories,
         # np.array([np.cos((iter_n)/traj_fac), np.sin((iter_n)/traj_fac), 1.0, 0.0, 0.0, 0.0, 0., 0., 0.0, 0.0, 0.0, 0.0, 0.0]).reshape(1, -1)))
         next_trajectories = np.concatenate((next_trajectories,
-        np.array([np.cos((iter_n)/traj_fac), np.sin((iter_n)/traj_fac), 1.0+kz*iter_n, -np.sin(iter_n/traj_fac)/(dt*traj_fac), np.cos(iter_n/traj_fac)/(dt*traj_fac), 0.0, 0., 0., 0.0, 0.0, 0.0, 0.0, 0.0]).reshape(1, -1)))
+        np.array([np.cos((iter_n)/traj_fac)-1, np.sin((iter_n)/traj_fac), 1.0+kz*iter_n, -np.sin(iter_n/traj_fac)/(dt*traj_fac), np.cos(iter_n/traj_fac)/(dt*traj_fac), 0.0, 0., 0., 0.0, 0.0, 0.0, 0.0, 0.0]).reshape(1, -1)))
         return next_trajectories
     elif traj_shape=='eight':
         next_trajectories = current_trajectory[1:, :]
         # next_trajectories = np.concatenate((next_trajectories,
         # np.array([np.cos((iter_n)/traj_fac), np.sin((iter_n)/traj_fac), 1.0, 0.0, 0.0, 0.0, 0., 0., 0.0, 0.0, 0.0, 0.0, 0.0]).reshape(1, -1)))
         next_trajectories = np.concatenate((next_trajectories,
-        np.array([np.cos((iter_n)/traj_fac), 0.5*np.sin(2*(iter_n)/traj_fac), 1.0, -np.sin(iter_n/traj_fac)/(dt*traj_fac), np.cos(2*iter_n/traj_fac)/(2*dt*traj_fac), 0.0, 0., 0., 0.0, 0.0, 0.0, 0.0, 0.0]).reshape(1, -1)))
+        np.array([np.cos((iter_n)/traj_fac)-1, 0.5*np.sin(2*(iter_n)/traj_fac), 1.0, -np.sin(iter_n/traj_fac)/(dt*traj_fac), np.cos(2*iter_n/traj_fac)/(2*dt*traj_fac), 0.0, 0., 0., 0.0, 0.0, 0.0, 0.0, 0.0]).reshape(1, -1)))
         return next_trajectories
 
     next_trajectories = current_trajectory[1:, :]
     # next_trajectories = np.concatenate((next_trajectories,
     # np.array([np.cos((iter_n)/traj_fac), np.sin((iter_n)/traj_fac), 1.0, 0.0, 0.0, 0.0, 0., 0., 0.0, 0.0, 0.0, 0.0, 0.0]).reshape(1, -1)))
     next_trajectories = np.concatenate((next_trajectories,
-    np.array([np.cos((iter_n)/traj_fac), np.sin((iter_n)/traj_fac), 1.0, -np.sin(iter_n/traj_fac)/(dt*traj_fac), np.cos(iter_n/traj_fac)/(dt*traj_fac), 0.0, 0., 0., 0.0, 0.0, 0.0, 0.0, 0.0]).reshape(1, -1)))
+    np.array([np.cos((iter_n)/traj_fac)-1, np.sin((iter_n)/traj_fac), 1.0, -np.sin(iter_n/traj_fac)/(dt*traj_fac), np.cos(iter_n/traj_fac)/(dt*traj_fac), 0.0, 0., 0., 0.0, 0.0, 0.0, 0.0, 0.0]).reshape(1, -1)))
     return next_trajectories
 
 

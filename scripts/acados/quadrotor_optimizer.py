@@ -136,11 +136,11 @@ class QuadOptimizer:
         # P_m_[2, 5] = 10.95
         # P_m_[5, 2] = 10.95
         # R_m_ = np.diag([50.0, 60.0, 1.0])
-        Q_m_ = np.diag([10.0, 10.0, 10.0,
-                        3e-3, 3e-3, 3e-3,
+        Q_m_ = np.diag([5.0, 5.0, 5.0,
+                        1e-1, 1e-1, 1e-1,
                         #3e-1, 3e-1, 3e-2, 3e-2,
-                        21.0, 21.0, 3e-4, 3e-4,
-                        0.5, 0.5, 0.5])  # position, velocity, load_position, load_velocity, [roll, pitch, yaw]
+                        6.0e0, 6.0e0, 2e-2, 2e-2,
+                        2.5, 2.5, 2.5])  # position, velocity, load_position, load_velocity, [roll, pitch, yaw]
 
         P_m_ = np.diag([10.0, 10.0, 10.0,
                         0.05, 0.05, 0.05
@@ -217,7 +217,7 @@ class QuadOptimizer:
         ocp.solver_options.print_level = 0
         ocp.solver_options.nlp_solver_type = 'SQP_RTI'  # 'SQP_RTI'
 
-        ocp.solver_options.levenberg_marquardt = 0.05 # 0.0
+        ocp.solver_options.levenberg_marquardt = 0.12 # 0.0
 
         # compile acados ocp
         json_file = os.path.join('./'+self.model.name+'_acados_ocp.json')
