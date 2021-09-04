@@ -136,11 +136,11 @@ class QuadOptimizer:
         # P_m_[2, 5] = 10.95
         # P_m_[5, 2] = 10.95
         # R_m_ = np.diag([50.0, 60.0, 1.0])
-        Q_m_ = np.diag([5.0, 5.0, 5.0,
+        Q_m_ = np.diag([10.0, 10.0, 10.0,
                         1e-1, 1e-1, 1e-1,
                         #3e-1, 3e-1, 3e-2, 3e-2,
-                        6.0e0, 6.0e0, 2e-2, 2e-2,
-                        2.5, 2.5, 2.5])  # position, velocity, load_position, load_velocity, [roll, pitch, yaw]
+                        1.0e0, 1.0e0, 2e-2, 2e-2,
+                        0.5, 0.5, 0.5])  # position, velocity, load_position, load_velocity, [roll, pitch, yaw]
 
         P_m_ = np.diag([10.0, 10.0, 10.0,
                         0.05, 0.05, 0.05
@@ -301,7 +301,7 @@ class QuadOptimizer:
                 # print(self.att_command.orientation)
                 #self.att_command.thrust = mpc_u_[3]/9.8066 - 0.5
                 # self.att_command.thrust = mpc_u_[3]/9.8066 - 0.38
-                self.att_command.thrust = mpc_u_[3]/9.8066*0.6175
+                self.att_command.thrust = mpc_u_[3]/9.8066*0.62
                 # print()
                 # print("mpc_u: ")
                 # print(mpc_u_)
