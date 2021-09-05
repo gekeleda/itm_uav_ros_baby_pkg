@@ -137,10 +137,10 @@ class QuadOptimizer:
         # P_m_[5, 2] = 10.95
         # R_m_ = np.diag([50.0, 60.0, 1.0])
         Q_m_ = np.diag([10.0, 10.0, 10.0,
-                        1e-1, 1e-1, 1e-1,
+                        3e-1, 3e-1, 3e-1,
                         #3e-1, 3e-1, 3e-2, 3e-2,
-                        1.0e0, 1.0e0, 2e-2, 2e-2,
-                        0.5, 0.5, 0.5])  # position, velocity, load_position, load_velocity, [roll, pitch, yaw]
+                        6.2e2, 6.2e2, 1e-1, 1e-1,
+                        2.5, 2.5, 2.5])  # position, velocity, load_position, load_velocity, [roll, pitch, yaw]
 
         P_m_ = np.diag([10.0, 10.0, 10.0,
                         0.05, 0.05, 0.05
@@ -413,7 +413,7 @@ def plotPaths(simX, simD, mpc_iter):
 if __name__ == '__main__':
     rospy.init_node('offboard_mpc_controller')
 
-    sim_time = 50 # s
+    sim_time = 45 # s
     dt = 0.02 # s
     nx = 13
     nu = 4
