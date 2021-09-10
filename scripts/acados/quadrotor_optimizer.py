@@ -28,6 +28,7 @@ from mavros_msgs.msg import AttitudeTarget
 from geometry_msgs.msg import Quaternion
 from threading import Thread
 from std_msgs.msg import Header
+from scipy.ndimage.filters import gaussian_filter1d
 
 import matplotlib.pyplot as plt
 
@@ -136,11 +137,11 @@ class QuadOptimizer:
         # P_m_[2, 5] = 10.95
         # P_m_[5, 2] = 10.95
         # R_m_ = np.diag([50.0, 60.0, 1.0])
-        Q_m_ = np.diag([15.0, 15.0, 15.0,
+        Q_m_ = np.diag([10.0, 10.0, 10.0,
                         3e-1, 3e-1, 3e-1,
                         #3e-1, 3e-1, 3e-2, 3e-2,
-                        7.2e2, 7.2e2, 1e-1, 1e-1,
-                        2.5, 2.5, 2.5])  # position, velocity, load_position, load_velocity, [roll, pitch, yaw]
+                        12.2e1, 12.2e1, 1e-1, 1e-1,
+                        10.5, 10.5, 10.5])  # position, velocity, load_position, load_velocity, [roll, pitch, yaw]
 
         P_m_ = np.diag([10.0, 10.0, 10.0,
                         0.05, 0.05, 0.05
@@ -215,7 +216,7 @@ class QuadOptimizer:
         # explicit Runge-Kutta integrator
         ocp.solver_options.integrator_type = 'ERK'
         ocp.solver_options.print_level = 0
-        ocp.solver_options.nlp_solver_type = 'SQP_RTI'  # 'SQP_RTI'
+        ocp.solver_options.nlp_solver_type = 'SQP'  # 'SQP_RTI'
 
         ocp.solver_options.levenberg_marquardt = 0.12 # 0.0
 
@@ -241,6 +242,9 @@ class QuadOptimizer:
 
             simX[mpc_iter] = new_state # mpc_iter+1 ?
             simD[mpc_iter] = current_trajectory[0]
+
+            l = 0.1
+            #print(np.rad2deg(np.arcsin(new_state[6]/l)))
 
             # print()
             # print("current state: ")
@@ -373,7 +377,13 @@ class QuadOptimizer:
             # print("publsich loop takes {} seconds".format(time.time() - t2))
 
 
-def plotPaths(simX, simD, mpc_iter):
+def smoothPlot(x, y, ax):
+    ysmoothed = gaussian_filter1d(y, sigma=10)
+    ax.plot(x, ysmoothed, )
+
+def plotPaths(simX, simD, mpc_iter, range_min=0, range_max=-1):
+    if range_max==-1:
+        range_max = mpc_iter
     l = 0.1
     hX = np.sqrt(l*l - np.square(simX[:mpc_iter,6]) - np.square(simX[:mpc_iter, 7]))
     hD = np.sqrt(l*l - np.square(simD[:mpc_iter,6]) - np.square(simD[:mpc_iter, 7]))
@@ -389,23 +399,26 @@ def plotPaths(simX, simD, mpc_iter):
     ax.plot(simD[:mpc_iter, 0], simD[:mpc_iter, 1], simD[:mpc_iter, 2], 'b--')
     ax.plot(loadX[0], loadX[1], loadX[2], 'r')
     ax.plot(loadD[0], loadD[1], loadD[2], 'r--')
+
+    iters = range(range_min, range_max)
+
     plt.show()
     fig = plt.figure()
     ax = fig.gca()
-    ax.plot(range(mpc_iter), simX[:mpc_iter, 0], )
-    ax.plot(range(mpc_iter), simD[:mpc_iter, 0], )
+    ax.plot(iters, simX[iters, 0], )
+    ax.plot(iters, simD[iters, 0], )
     plt.title("x coordinate of quadcopter")
     plt.show()
     fig = plt.figure()
     ax = fig.gca()
-    ax.plot(range(mpc_iter), loadX[0], )
-    ax.plot(range(mpc_iter), loadD[0], )
+    ax.plot(iters, loadX[0][iters], )
+    ax.plot(iters, loadD[0][iters], )
     plt.title("x coordinate of pendulum")
     plt.show()
     fig = plt.figure()
     ax = fig.gca()
-    ax.plot(range(mpc_iter), alphaX, )
-    ax.plot(range(mpc_iter), alphaD, )
+    smoothPlot(iters, alphaX[iters], ax)
+    ax.plot(iters, alphaD[iters], )
     plt.title("alpha angle of pendulum")
     plt.ylabel("degrees")
     plt.show()
@@ -447,7 +460,7 @@ if __name__ == '__main__':
         #     print(main_iter)
     
     print('MPC controller is shutdown')
-    plotPaths(simX, simD, main_iter)
+    plotPaths(simX, simD, main_iter, 1250, main_iter)
 
     path = os.path.dirname(os.path.realpath(__file__))
 
