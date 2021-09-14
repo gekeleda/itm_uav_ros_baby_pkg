@@ -23,7 +23,7 @@ def trajectory_generator(iter_n, current_trajectory, traj_shape='circle'):
     traj_fac = 30 # 30
 
     if traj_shape=='spiral':
-        kz = 0.0013
+        kz = 0.0025
         next_trajectories = current_trajectory[1:, :]
         # next_trajectories = np.concatenate((next_trajectories,
         # np.array([np.cos((iter_n)/traj_fac), np.sin((iter_n)/traj_fac), 1.0, 0.0, 0.0, 0.0, 0., 0., 0.0, 0.0, 0.0, 0.0, 0.0]).reshape(1, -1)))
@@ -82,7 +82,7 @@ def getTrajectory(i, k, start_point, old_trajectory):
         next_trajectories = np.concatenate((next_trajectories, (fac*reference_point + (1-fac)*start_point).reshape(1, -1)))
         return next_trajectories
     else:
-        return trajectory_generator(i-delay_traj, old_trajectory, traj_shape="circle") #shape: circle, spiral or eight
+        return trajectory_generator(i-delay_traj, old_trajectory, traj_shape="spiral") #shape: circle, spiral or eight
 
 
 def talker():
