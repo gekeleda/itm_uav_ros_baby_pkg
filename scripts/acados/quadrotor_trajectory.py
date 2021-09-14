@@ -23,7 +23,7 @@ def trajectory_generator(iter_n, current_trajectory, traj_shape='circle'):
     traj_fac = 30 # 30
 
     if traj_shape=='spiral':
-        kz = 0.005
+        kz = 0.0013
         next_trajectories = current_trajectory[1:, :]
         # next_trajectories = np.concatenate((next_trajectories,
         # np.array([np.cos((iter_n)/traj_fac), np.sin((iter_n)/traj_fac), 1.0, 0.0, 0.0, 0.0, 0., 0., 0.0, 0.0, 0.0, 0.0, 0.0]).reshape(1, -1)))

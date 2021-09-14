@@ -378,7 +378,7 @@ class QuadOptimizer:
 
 
 def smoothPlot(x, y, ax):
-    ysmoothed = gaussian_filter1d(y, sigma=10)
+    ysmoothed = gaussian_filter1d(y, sigma=8)
     ax.plot(x, ysmoothed, )
 
 def plotPaths(simX, simD, mpc_iter, range_min=0, range_max=-1):
@@ -392,6 +392,8 @@ def plotPaths(simX, simD, mpc_iter, range_min=0, range_max=-1):
 
     alphaX = np.rad2deg(np.arcsin(simX[:mpc_iter, 6] / l))
     alphaD = np.rad2deg(np.arcsin(simD[:mpc_iter, 6] / l))
+
+    print(np.max(np.abs(alphaX)))
 
     fig = plt.figure()
     ax = fig.gca(projection='3d')
@@ -411,15 +413,17 @@ def plotPaths(simX, simD, mpc_iter, range_min=0, range_max=-1):
     plt.show()
     fig = plt.figure()
     ax = fig.gca()
-    ax.plot(iters, loadX[0][iters], )
-    ax.plot(iters, loadD[0][iters], )
-    plt.title("x coordinate of pendulum")
+    # ax.plot(iters, loadX[0][iters], )
+    # ax.plot(iters, loadD[0][iters], )
+    smoothPlot(iters, simX[iters, 6], ax)
+    ax.plot(iters, simD[iters, 6], )
+    plt.title("x coordinate of pendulum, relative to quadcopter (smoothed)")
     plt.show()
     fig = plt.figure()
     ax = fig.gca()
     smoothPlot(iters, alphaX[iters], ax)
     ax.plot(iters, alphaD[iters], )
-    plt.title("alpha angle of pendulum")
+    plt.title("alpha angle of pendulum (smoothed)")
     plt.ylabel("degrees")
     plt.show()
 
