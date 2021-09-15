@@ -20,7 +20,7 @@ dist = np.linalg.norm(reference_point[:6])
 steps = int(dist/veliter)
 
 def trajectory_generator(iter_n, current_trajectory, traj_shape='circle'):
-    traj_fac = 30 # 30
+    traj_fac = 60 # 30
 
     if traj_shape=='spiral':
         kz = 0.0025
@@ -28,7 +28,7 @@ def trajectory_generator(iter_n, current_trajectory, traj_shape='circle'):
         # next_trajectories = np.concatenate((next_trajectories,
         # np.array([np.cos((iter_n)/traj_fac), np.sin((iter_n)/traj_fac), 1.0, 0.0, 0.0, 0.0, 0., 0., 0.0, 0.0, 0.0, 0.0, 0.0]).reshape(1, -1)))
         next_trajectories = np.concatenate((next_trajectories,
-        np.array([np.cos((iter_n)/traj_fac)-1, np.sin((iter_n)/traj_fac), 1.0+kz*iter_n, -np.sin(iter_n/traj_fac)/(dt*traj_fac), np.cos(iter_n/traj_fac)/(dt*traj_fac), 0.0, 0., 0., 0.0, 0.0, 0.0, 0.0, 0.0]).reshape(1, -1)))
+        np.array([np.cos((iter_n)/traj_fac)-1, np.sin((iter_n)/traj_fac), 1.0+kz*iter_n, -np.sin(iter_n/traj_fac)/(dt*traj_fac), np.cos(iter_n/traj_fac)/(dt*traj_fac), kz/dt, 0., 0., 0.0, 0.0, 0.0, 0.0, 0.0]).reshape(1, -1)))
         return next_trajectories
     elif traj_shape=='eight':
         next_trajectories = current_trajectory[1:, :]
@@ -82,7 +82,7 @@ def getTrajectory(i, k, start_point, old_trajectory):
         next_trajectories = np.concatenate((next_trajectories, (fac*reference_point + (1-fac)*start_point).reshape(1, -1)))
         return next_trajectories
     else:
-        return trajectory_generator(i-delay_traj, old_trajectory, traj_shape="spiral") #shape: circle, spiral or eight
+        return trajectory_generator(i-delay_traj, old_trajectory, traj_shape="eight") #shape: circle, spiral or eight
 
 
 def talker():

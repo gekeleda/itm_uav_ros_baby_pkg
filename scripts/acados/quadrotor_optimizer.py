@@ -140,7 +140,7 @@ class QuadOptimizer:
         Q_m_ = np.diag([10.0, 10.0, 10.0,
                         3e-1, 3e-1, 3e-1,
                         #3e-1, 3e-1, 3e-2, 3e-2,
-                        100.0, 100.0, 1e-2, 1e-2,
+                        100.0, 100.0, 1e-3, 1e-3,
                         10.5, 10.5, 10.5])  # position, velocity, load_position, load_velocity, [roll, pitch, yaw]
 
         P_m_ = np.diag([10.0, 10.0, 10.0,
@@ -377,9 +377,9 @@ class QuadOptimizer:
             # print("publsich loop takes {} seconds".format(time.time() - t2))
 
 
-def smoothPlot(x, y, ax):
+def smoothPlot(x, y, ax, lab):
     ysmoothed = gaussian_filter1d(y, sigma=8)
-    ax.plot(x, ysmoothed, )
+    ax.plot(x, ysmoothed, label=lab)
 
 def plotPaths(simX, simD, mpc_iter, range_min=0, range_max=-1):
     if range_max==-1:
@@ -397,40 +397,59 @@ def plotPaths(simX, simD, mpc_iter, range_min=0, range_max=-1):
 
     fig = plt.figure()
     ax = fig.gca(projection='3d')
-    ax.plot(simX[:mpc_iter, 0], simX[:mpc_iter, 1], simX[:mpc_iter, 2], 'b')
-    ax.plot(simD[:mpc_iter, 0], simD[:mpc_iter, 1], simD[:mpc_iter, 2], 'b--')
-    ax.plot(loadX[0], loadX[1], loadX[2], 'r')
-    ax.plot(loadD[0], loadD[1], loadD[2], 'r--')
+    ax.plot(simX[:mpc_iter, 0], simX[:mpc_iter, 1], simX[:mpc_iter, 2], 'b', label="real quadcopter trajectory")
+    ax.plot(simD[:mpc_iter, 0], simD[:mpc_iter, 1], simD[:mpc_iter, 2], 'b--', label="desired quadcopter trajectory")
+    ax.plot(loadX[0], loadX[1], loadX[2], 'r', label="real pendulum trajectory")
+    
+    ax.legend(loc=(1, 0.6))
+    # ax.plot(loadD[0], loadD[1], loadD[2], 'r--')
 
     iters = range(range_min, range_max)
+    dt = 0.02
+    t = np.linspace(0, 0.02*(range_max-range_min), num=range_max-range_min)
 
+    plt.savefig('traj.png', bbox_inches='tight')
     plt.show()
+
     fig = plt.figure()
     ax = fig.gca()
-    ax.plot(iters, simX[iters, 0], )
-    ax.plot(iters, simD[iters, 0], )
-    plt.title("x coordinate of quadcopter")
+    ax.plot(t, simX[iters, 0], label="real quadcopter x-coordinate")
+    ax.plot(t, simD[iters, 0], '--', label="desired quadcopter x-coordinate")
+    #plt.title("x coordinate of quadcopter")
+    plt.xlabel("time in s")
+    plt.ylabel("distance in m")
+    ax.legend(loc=(1, 0.6))
+    plt.savefig('res_x.png', bbox_inches='tight')
     plt.show()
+
     fig = plt.figure()
     ax = fig.gca()
     # ax.plot(iters, loadX[0][iters], )
     # ax.plot(iters, loadD[0][iters], )
-    smoothPlot(iters, simX[iters, 6], ax)
-    ax.plot(iters, simD[iters, 6], )
-    plt.title("x coordinate of pendulum, relative to quadcopter (smoothed)")
+    smoothPlot(t, simX[iters, 6], ax, "real pendulum x-coordinate")
+    ax.plot(t, simD[iters, 6], '--', label="desired pendulum x-coordinate")
+    #plt.title("x coordinate of pendulum, relative to quadcopter (smoothed)")
+    plt.ylabel("distance in m")
+    plt.xlabel("time in s")
+    ax.legend()
+    plt.savefig('res_load_x.png', bbox_inches='tight')
     plt.show()
+
     fig = plt.figure()
     ax = fig.gca()
-    smoothPlot(iters, alphaX[iters], ax)
-    ax.plot(iters, alphaD[iters], )
-    plt.title("alpha angle of pendulum (smoothed)")
+    smoothPlot(t, alphaX[iters], ax, "real pendulum angle")
+    ax.plot(t, alphaD[iters], '--', label="desired pendulum angle")
+    #plt.title("alpha angle of pendulum (smoothed)")
+    ax.legend()
     plt.ylabel("degrees")
+    plt.xlabel("time in s")
+    plt.savefig('res_load_angle.png', bbox_inches='tight')
     plt.show()
 
 if __name__ == '__main__':
     rospy.init_node('offboard_mpc_controller')
 
-    sim_time = 45 # s
+    sim_time = 65 # s
     dt = 0.02 # s
     nx = 13
     nu = 4
