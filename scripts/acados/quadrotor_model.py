@@ -10,11 +10,12 @@ from acados_template import AcadosModel
 
 
 
+
 class QuadRotorModel(object):
     def __init__(self, ):
         #constants
         g = 9.8066
-        l = 0.1 # actually 0.1, but becomes very unstable
+        l = 0.1
 
         # control inputs
         roll_ref = ca.SX.sym('roll_ref_')

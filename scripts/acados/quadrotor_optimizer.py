@@ -228,7 +228,7 @@ class QuadOptimizer:
 
     def mpc_estimation_loop(self, mpc_iter):
         if self.trajectory_path is not None and self.current_state is not None:
-            # time_1 = time.time()
+            t1 = time.time()
             # dt = 0.1
             current_trajectory = self.trajectory_path
 
@@ -270,6 +270,8 @@ class QuadOptimizer:
             self.solver.set(0, 'ubx', new_state)
 
             status = self.solver.solve()
+
+            tarr[mpc_iter] = time.time() - t1
 
             if status != 0:
                 rospy.logerr("MPC cannot find a proper solution.")
@@ -401,12 +403,15 @@ def plotPaths(simX, simD, mpc_iter, range_min=0, range_max=-1):
     ax.plot(simD[:mpc_iter, 0], simD[:mpc_iter, 1], simD[:mpc_iter, 2], 'b--', label="desired quadcopter trajectory")
     ax.plot(loadX[0], loadX[1], loadX[2], 'r', label="real pendulum trajectory")
     
-    ax.legend(loc=(1, 0.6))
+    ax.legend(loc=(0.2, 0.3))
+    plt.xlabel('[m]')
+    plt.ylabel('[m]')
+    ax.set_zlabel('[m]', rotation=0)
     # ax.plot(loadD[0], loadD[1], loadD[2], 'r--')
 
     iters = range(range_min, range_max)
     dt = 0.02
-    t = np.linspace(0, 0.02*(range_max-range_min), num=range_max-range_min)
+    t = np.linspace(0, dt*(range_max-range_min), num=range_max-range_min)
 
     plt.savefig('traj.png', bbox_inches='tight')
     plt.show()
@@ -418,7 +423,7 @@ def plotPaths(simX, simD, mpc_iter, range_min=0, range_max=-1):
     #plt.title("x coordinate of quadcopter")
     plt.xlabel("time in s")
     plt.ylabel("distance in m")
-    ax.legend(loc=(1, 0.6))
+    #ax.legend()
     plt.savefig('res_x.png', bbox_inches='tight')
     plt.show()
 
@@ -431,7 +436,7 @@ def plotPaths(simX, simD, mpc_iter, range_min=0, range_max=-1):
     #plt.title("x coordinate of pendulum, relative to quadcopter (smoothed)")
     plt.ylabel("distance in m")
     plt.xlabel("time in s")
-    ax.legend()
+    #ax.legend()
     plt.savefig('res_load_x.png', bbox_inches='tight')
     plt.show()
 
@@ -440,16 +445,18 @@ def plotPaths(simX, simD, mpc_iter, range_min=0, range_max=-1):
     smoothPlot(t, alphaX[iters], ax, "real pendulum angle")
     ax.plot(t, alphaD[iters], '--', label="desired pendulum angle")
     #plt.title("alpha angle of pendulum (smoothed)")
-    ax.legend()
+    #ax.legend()
     plt.ylabel("degrees")
     plt.xlabel("time in s")
     plt.savefig('res_load_angle.png', bbox_inches='tight')
     plt.show()
 
 if __name__ == '__main__':
+    print(os.path.dirname(os.path.realpath(__file__)))
+
     rospy.init_node('offboard_mpc_controller')
 
-    sim_time = 65 # s
+    sim_time = 95 # s
     dt = 0.02 # s
     nx = 13
     nu = 4
@@ -458,6 +465,8 @@ if __name__ == '__main__':
     simX[0] = np.array([0.0, 0.0, 0.0, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
     simD = np.zeros((int(sim_time/dt+1), nx))
     simU = np.zeros((int(sim_time/dt), nu))
+
+    tarr = np.zeros((int(sim_time/dt+1), 1))
 
     quad_rotor_model = QuadRotorModel()
     try:
@@ -483,10 +492,11 @@ if __name__ == '__main__':
         #     print(main_iter)
     
     print('MPC controller is shutdown')
-    plotPaths(simX, simD, main_iter, 1250, main_iter)
-
+    print('average time is {}'.format(np.sum(tarr)/main_iter))
     path = os.path.dirname(os.path.realpath(__file__))
 
-    np.save(path + "simX.npy", simX)
-    np.save(path + "simX.npy", simD)
-    np.save(path + "simX.npy", simU)
+    np.save(path + "/simX.npy", simX[:main_iter])
+    np.save(path + "/simD.npy", simD[:main_iter])
+    # np.save(path + "/simU.npy", simU[main_iter])
+
+    plotPaths(simX, simD, main_iter, 1250, main_iter)
